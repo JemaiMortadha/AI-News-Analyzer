@@ -107,7 +107,7 @@ Output: [Positive, Neutral, Negative] probabilities
 - **Optimizer:** Adam (lr=0.001)
 - **Loss Function:** CrossEntropyLoss
 - **Validation Split:** 80/20 train/test
-- **Final Accuracy:** ~85-90%
+- **Final Accuracy:** ~85%
 
 **Files:**
 - Training: `backend/analyzer/train_dl_model.py`
@@ -141,7 +141,7 @@ Output: [Positive, Neutral, Negative] probabilities
 **Why Transfer Learning?**
 - **Limited Data:** Only 1,800 images (not enough to train CNN from scratch)
 - **Better Accuracy:** Leverages ResNet's pre-trained knowledge of visual features
-- **Faster Training:** 5-10 minutes vs hours
+- **Faster Training:** 15 minutes vs hours
 - **Industry Standard:** Professional approach for small datasets
 
 **Training Details:**
@@ -152,13 +152,227 @@ Output: [Positive, Neutral, Negative] probabilities
 - **Image Size:** 224×224 (ResNet standard)
 - **Data Augmentation:** Random flip, rotation, color jitter
 - **Validation Split:** 80/20 train/val
-- **Expected Accuracy:** 70-80%
+- **Final Accuracy:** 75%
 
 **Files:**
 - Dataset downloader: `backend/analyzer/download_image_dataset.py`
 - Training: `backend/analyzer/train_image_model.py`
 - Inference: `backend/analyzer/image_model.py`
 - Model weights: `backend/analyzer/image_sentiment.pth`
+
+---
+
+## 🎓 Model Training
+
+### Text Model Training Code
+
+**Key Components Explained:**
+
+#### 1. **Model Architecture Definition**
+```python
+class SentimentCNN(nn.Module):
+    def __init__(self, vocab_size, embedding_dim=128, num_filters=128):
+        super(SentimentCNN, self).__init__()
+        # Convert words to dense vectors
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        # Multiple conv layers to capture different n-grams
+        self.convs = nn.ModuleList([
+            nn.Conv1d(embedding_dim, num_filters, kernel_size=fs)
+            for fs in [3, 4, 5]  # trigrams, 4-grams, 5-grams
+        ])
+        
+        self.dropout = nn.Dropout(0.5)
+        self.fc = nn.Linear(len([3,4,5]) * num_filters, 3)  # 3 classes
+```
+*Explanation:* This CNN extracts features from text. Each kernel size (3,4,5) captures different phrase lengths. The embedding layer converts words into 128-dimensional vectors that the network can learn from.
+
+#### 2. **GPU Configuration**
+```python
+# Automatically use GPU if available, otherwise CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using device: {device}")
+
+# Move model to GPU
+model = model.to(device)
+```
+*Explanation:* This code detects if you have a CUDA-compatible GPU (like your GTX 1050) and uses it for faster training. If no GPU is found, it falls back to CPU.
+
+#### 3. **Training Loop**
+```python
+for epoch in range(EPOCHS):
+    model.train()  # Set model to training mode
+    
+    for texts_batch, labels_batch in dataloader:
+        # Move data to GPU
+        texts_batch = texts_batch.to(device)
+        labels_batch = labels_batch.to(device)
+        
+        # Forward pass: compute predictions
+        outputs = model(texts_batch)
+        
+        # Compute loss (how wrong are we?)
+        loss = criterion(outputs, labels_batch)
+        
+        # Backward pass: compute gradients
+        optimizer.zero_grad()  # Clear old gradients
+        loss.backward()        # Compute new gradients
+        
+        # Update weights
+        optimizer.step()
+```
+*Explanation:* This is the training loop. For each batch of text, we:
+1. **Forward pass**: Feed text through the network to get predictions
+2. **Loss calculation**: Measure how wrong the predictions are
+3. **Backward pass**: Calculate gradients (how to adjust weights)
+4. **Weight update**: Apply the gradients to improve the model
+
+---
+
+### Image Model Training Code
+
+**Key Components Explained:**
+
+#### 1. **Load Pre-trained ResNet18 & Freeze Layers**
+```python
+import torchvision.models as models
+
+# Load ResNet18 with pre-trained weights from ImageNet
+model = models.resnet18(pretrained=True)
+
+# Freeze all layers (don't train them)
+for param in model.parameters():
+    param.requires_grad = False  # Frozen!
+```
+*Explanation:* We load ResNet18 that was already trained on ImageNet (1M+ images). We freeze these layers so they don't change during training - they already know how to detect edges, shapes, and objects.
+
+#### 2. **Replace Final Layer (This is what YOU train!)**
+```python
+# Replace final classification layer
+num_features = model.fc.in_features  # 512 features from ResNet
+model.fc = nn.Linear(num_features, 3)  # New layer: 512 → 3 classes
+
+# Only train the final layer!
+optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
+```
+*Explanation:* We replace ResNet's final layer (which classified 1000 ImageNet categories) with OUR layer (3 sentiments). Only this new layer trains - it learns to map ResNet's features to sentiment labels.
+
+#### 3. **Data Augmentation**
+```python
+train_transform = transforms.Compose([
+    transforms.Resize((224, 224)),           # Resize to ResNet size
+    transforms.RandomHorizontalFlip(),       # Randomly flip image
+    transforms.RandomRotation(10),           # Randomly rotate ±10°
+    transforms.ColorJitter(brightness=0.2),  # Vary brightness
+    transforms.ToTensor(),                   # Convert to tensor
+    transforms.Normalize(                    # ImageNet normalization
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
+```
+*Explanation:* Data augmentation creates variations of each image (flips, rotations, color changes). This makes the model more robust and effectively increases your dataset size.
+
+#### 4. **Training Loop (Same Pattern as Text)**
+```python
+for epoch in range(EPOCHS):
+    for images, labels in train_loader:
+        # Move to GPU
+        images = images.to(device)
+        labels = labels.to(device)
+        
+        # Forward pass
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        
+        # Backward pass
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    
+    # Validation
+    model.eval()  # Switch to evaluation mode
+    with torch.no_grad():  # Don't compute gradients
+        for images, labels in val_loader:
+            outputs = model(images)
+            # Calculate accuracy...
+```
+*Explanation:* Same training pattern as text model, but with images. The key difference: we validate after each epoch to check if the model is improving and not overfitting.
+
+---
+
+### How To Train The Models
+
+#### Training Text Model (Already Done)
+
+```bash
+cd backend/analyzer
+
+# Train with GPU (Python 3.10)
+python3.10 train_dl_model.py
+
+# Or train with CPU (any Python)
+python train_dl_model.py
+```
+
+**Output:** `sentiment_cnn.pth` and `vocab.pkl`
+
+**Training time:** ~8 minutes (GPU) or ~15 minutes (CPU)
+
+---
+
+#### Training Image Model (Recommended to Do)
+
+**Step 1: Download Dataset**
+```bash
+cd backend/analyzer
+
+# Install downloader
+pip install bing-image-downloader
+
+# Download ~1,800 news images (takes 30-60 minutes)
+python download_image_dataset.py
+```
+
+**Step 2: Train Model**
+```bash
+# Train with GPU (Python 3.10 required for CUDA)
+python3.10 train_image_model.py
+
+# Output: image_sentiment.pth
+# Training time: 15 minutes (GPU) or 25 minutes (CPU)
+```
+
+**Expected Results:**
+```
+Epoch [1/15] (35.2s)
+  Train Loss: 0.8234 | Train Acc: 65.12%
+  Val Loss:   0.7326 | Val Acc:   71.67%
+
+...
+
+Epoch [15/15] (34.8s)
+  Train Loss: 0.6012 | Train Acc: 75.23%
+  Val Loss:   0.6834 | Val Acc:   74.17%
+
+✅ Training completed!
+🏆 Best validation accuracy: 76.50%
+```
+
+#### 📸 Actual Training Results
+
+Below is a screenshot of the actual training process showing GPU utilization, epoch progression, and convergence:
+
+![Training Progress](Learning_Screenshot.png)
+
+*Figure: Real training output showing CUDA GPU acceleration, batch processing, validation metrics, and model convergence over 15 epochs.*
+
+**Key observations from training:**
+- ✅ GPU successfully detected and utilized (CUDA)
+- ✅ Progressive accuracy improvement across epochs
+- ✅ Validation accuracy plateaus around 70-80%
+- ✅ Loss decreases steadily, indicating proper learning
+- ✅ No overfitting (train/val metrics stay close)
 
 ---
 
@@ -382,83 +596,6 @@ http://localhost:8000/api/
 
 ---
 
-## � Model Training
-
-### Training Text Model (Already Done)
-
-The text model is already trained on 20,000 headlines. To retrain:
-
-```bash
-cd backend/analyzer
-
-# Train with GPU (Python 3.10)
-python3.10 train_dl_model.py
-
-# Or train with CPU (any Python)
-python train_dl_model.py
-```
-
-**Output:** `sentiment_cnn.pth` and `vocab.pkl`
-
-**Training time:** ~5 minutes (GPU) or ~15 minutes (CPU)
-
----
-
-### Training Image Model (Recommended to Do)
-
-**Step 1: Download Dataset**
-```bash
-cd backend/analyzer
-
-# Install downloader
-pip install bing-image-downloader
-
-# Download ~1,800 news images (takes 30-60 minutes)
-python download_image_dataset.py
-```
-
-**Step 2: Train Model**
-```bash
-# Train with GPU (Python 3.10 required for CUDA)
-python3.10 train_image_model.py
-
-# Output: image_sentiment.pth
-# Training time: 5-10 minutes (GPU) or 20-30 minutes (CPU)
-```
-
-**Expected Results:**
-```
-Epoch [1/15] (35.2s)
-  Train Loss: 0.8234 | Train Acc: 65.12%
-  Val Loss:   0.7326 | Val Acc:   71.67%
-
-...
-
-Epoch [15/15] (34.8s)
-  Train Loss: 0.6012 | Train Acc: 75.23%
-  Val Loss:   0.6834 | Val Acc:   74.17%
-
-✅ Training completed!
-🏆 Best validation accuracy: 76.50%
-```
-
-#### 📸 Actual Training Results
-
-Below is a screenshot of the actual training process showing GPU utilization, epoch progression, and convergence:
-
-![Training Progress](Learning_Screenshot.png)
-
-*Figure: Real training output showing CUDA GPU acceleration, batch processing, validation metrics, and model convergence over 15 epochs.*
-
-**Key observations from training:**
-- ✅ GPU successfully detected and utilized (CUDA)
-- ✅ Progressive accuracy improvement across epochs
-- ✅ Validation accuracy plateaus around 70-80%
-- ✅ Loss decreases steadily, indicating proper learning
-- ✅ No overfitting (train/val metrics stay close)
-
----
-
 ## 🏗️ Architecture Details
 
 ### Frontend Architecture
@@ -652,8 +789,8 @@ mongod --dbpath /path/to/data
 
 | Model | Accuracy | Training Time (GPU) | Inference Time | Parameters Trained |
 |-------|----------|---------------------|----------------|-------------------|
-| Text CNN | ~90% | 5 min | <100ms | 2.5M |
-| Image CNN (Transfer) | ~75% | 8 min | <200ms | 1,536 |
+| Text CNN | ~85% | 8 min | <100ms | 2.5M |
+| Image CNN (Transfer) | 75% | 15 min | <200ms | 1,536 |
 
 ---
 
@@ -710,4 +847,3 @@ This is an educational project for academic purposes.
 
 ---
 
-**Good luck with your presentation! 🚀**
