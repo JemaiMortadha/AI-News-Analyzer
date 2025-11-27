@@ -41,7 +41,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>Built with React, Django & Scikit-learn</p>
+        <p></p>
       </footer>
     </div>
   )

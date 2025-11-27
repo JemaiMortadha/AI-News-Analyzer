@@ -44,12 +44,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # MongoDB Configuration
-MONGODB_HOST = os.environ.get('MONGODB_HOST', 'mongodb')
+MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
 MONGODB_PORT = int(os.environ.get('MONGODB_PORT', 27017))
 MONGODB_NAME = os.environ.get('MONGODB_NAME', 'ai_news_analyzer')
 
 # CORS Settings
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_ALL_ORIGINS = True  # This should already be there
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework

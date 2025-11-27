@@ -1,16 +1,15 @@
-FROM node:18-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json .
-RUN npm install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
 COPY . .
 
-# Expose port
-EXPOSE 3000
+# Train CNN model (fixed filename)
+RUN python analyzer/train_dl_model.py
 
-# Start dev server
-CMD ["npm", "run", "dev"]
+EXPOSE 8000
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
