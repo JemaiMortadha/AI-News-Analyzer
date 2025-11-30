@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Train CNN for image sentiment analysis using TRANSFER LEARNING
-- Uses pre-trained ResNet18 (trained on ImageNet)
-- Only trains final classification layer from scratch
-- Much better accuracy with less data!
-"""
+
 
 import torch
 import torch.nn as nn

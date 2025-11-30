@@ -47,6 +47,9 @@ class SentimentAnalyzer:
         with open(self.vocab_path, 'rb') as f:
             self.vocab = pickle.load(f)
         
+        # Force CPU to avoid CUDA compatibility issues
+        self.device = torch.device('cpu')
+        
         self.model = SentimentCNN(len(self.vocab))
         self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
         self.model.to(self.device)
