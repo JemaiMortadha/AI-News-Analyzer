@@ -270,3 +270,31 @@ def get_categories(request):
     ]
     
     return Response({'categories': categories}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_recommended_news(request):
+    """
+    Get personalized news recommendations for authenticated user
+    GET /api/news/recommended/
+    """
+    from .recommendations import RecommendationEngine
+    
+    user_id = request.user.id
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 20))
+    
+    # Get recommended articles
+    engine = RecommendationEngine()
+    articles = engine.get_recommended_articles(user_id, limit=page_size)
+    
+    # Get user's category preferences for display
+    category_prefs = engine.get_user_category_preferences(user_id)
+    
+    return Response({
+        'results': articles,
+        'preferences': category_prefs,
+        'count': len(articles),
+        'page': page
+    }, status=status.HTTP_200_OK)

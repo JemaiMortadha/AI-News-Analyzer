@@ -367,3 +367,35 @@ class EmailLog:
             sort=[('sent_at', DESCENDING)]
         )
         return log
+
+class FetchLog:
+    """MongoDB model for tracking news fetch operations"""
+    collection_name = 'fetch_logs'
+    
+    @classmethod
+    def get_collection(cls):
+        db = MongoDB.get_instance()
+        return db[cls.collection_name]
+    
+    @classmethod
+    def create(cls, articles_count=0, status='success', error_message=None, duration=0):
+        collection = cls.get_collection()
+        log = {
+            'fetch_date': datetime.utcnow(),
+            'articles_count': articles_count,
+            'status': status,
+            'error_message': error_message,
+            'duration': duration
+        }
+        result = collection.insert_one(log)
+        return result.inserted_id
+    
+    @classmethod
+    def get_all(cls, limit=100):
+        collection = cls.get_collection()
+        return list(collection.find().sort('fetch_date', DESCENDING).limit(limit))
+    
+    class Meta:
+        managed = False
+        verbose_name = 'Fetch Log'
+        verbose_name_plural = 'Fetch Logs'

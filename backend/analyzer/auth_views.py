@@ -141,3 +141,108 @@ def logout_user(request):
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+# ============= Password Reset Views =============
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_password_reset(request):
+    """
+    Request password reset - sends email with reset token
+    POST /api/auth/password-reset/request/
+    Body: { "email": "user@example.com" }
+    """
+    from .models import User
+    from .password_reset import PasswordResetToken
+    from .email_service import send_password_reset_email
+    
+    email = request.data.get('email')
+    
+    if not email:
+        return Response(
+            {'error': 'Email is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user = User.objects.get(email=email)
+        
+        # Generate reset token
+        token = PasswordResetToken.create(user.id, email)
+        
+        # Send email with reset link
+        reset_url = f"http://localhost:3000/reset-password/{token}"
+        send_password_reset_email(email, user.username, reset_url)
+        
+        return Response({
+            'message': 'Password reset email sent successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        # Don't reveal if email exists or not (security)
+        return Response({
+            'message': 'If an account with that email exists, a password reset link has been sent'
+        }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def confirm_password_reset(request):
+    """
+    Confirm password reset with token and new password
+    POST /api/auth/password-reset/confirm/
+    Body: { "token": "abc123", "password": "newpass123", "password2": "newpass123" }
+    """
+    from .models import User
+    from .password_reset import PasswordResetToken
+    from django.contrib.auth.hashers import make_password
+    
+    token = request.data.get('token')
+    password = request.data.get('password')
+    password2 = request.data.get('password2')
+    
+    if not all([token, password, password2]):
+        return Response(
+            {'error': 'Token and passwords are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if password != password2:
+        return Response(
+            {'error': 'Passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if len(password) < 8:
+        return Response(
+            {'error': 'Password must be at least 8 characters long'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Verify token
+    reset_token = PasswordResetToken.verify(token)
+    
+    if not reset_token:
+        return Response(
+            {'error': 'Invalid or expired reset token'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Update user password
+        user = User.objects.get(id=reset_token['user_id'])
+        user.password = make_password(password)
+        user.save()
+        
+        # Mark token as used
+        PasswordResetToken.mark_as_used(token)
+        
+        return Response({
+            'message': 'Password reset successful'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'User not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )

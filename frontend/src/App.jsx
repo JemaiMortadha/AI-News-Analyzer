@@ -1,10 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import ArticlesList from './components/ArticlesList';
 import Profile from './components/Profile';
 import DemoPage from './components/DemoPage';
+import ResetPassword from './components/ResetPassword';
 import './App.css';
 
 // Protected Route Component
@@ -20,6 +22,12 @@ const ProtectedRoute = ({ children }) => {
 const AppContent = () => {
   const location = useLocation();
   const isDemoPage = location.pathname === '/demo';
+  const isResetPasswordPage = location.pathname.startsWith('/reset-password/');
+
+  // Render reset password modal outside normal layout
+  if (isResetPasswordPage) {
+    return <ResetPassword />;
+  }
 
   return (
     <div className="app-container">
@@ -53,9 +61,11 @@ const AppContent = () => {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

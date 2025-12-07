@@ -148,15 +148,31 @@ const ArticlesList = ({ filter = 'all' }) => {
         <div className="articles-grid">
           {articles.map(article => (
             <div key={article._id} className="article-card">
-              {article.image_url && (
+              {article.image_url && article.image_url !== 'None' ? (
                 <div className="article-image">
-                  <img src={article.image_url} alt={article.title} onError={(e) => e.target.style.display = 'none'} />
+                  <img
+                    src={article.image_url}
+                    alt={article.title}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.classList.add('no-image');
+                      e.target.parentElement.innerHTML = `<div class="placeholder-image"><span class="category-icon">${article.category.toUpperCase()}</span></div>`;
+                    }}
+                  />
+                  <span className={`sentiment-badge ${article.sentiment}`}>
+                    {article.sentiment}
+                  </span>
+                </div>
+              ) : (
+                <div className="article-image no-image">
+                  <div className="placeholder-image">
+                    <span className="category-icon">{article.category?.toUpperCase() || 'NEWS'}</span>
+                  </div>
                   <span className={`sentiment-badge ${article.sentiment}`}>
                     {article.sentiment}
                   </span>
                 </div>
               )}
-
               <div className="article-content">
                 <div className="article-meta-top">
                   <span className="source">{article.source}</span>

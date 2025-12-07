@@ -155,3 +155,71 @@ class EmailService:
         except ApiException as e:
             logger.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
             return False
+
+
+def send_password_reset_email(to_email, username, reset_url):
+    """Send password reset email with token link"""
+    from decouple import config
+    import sib_api_v3_sdk
+    from sib_api_v3_sdk.rest import ApiException
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    api_key = config('BREVO_API_KEY', default='')
+    
+    if not api_key:
+        logger.warning("Brevo API key not configured")
+        return False
+    
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = api_key
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+    
+    sender_email = config('BREVO_SENDER_EMAIL', default='noreply@ainewsanalyzer.com')
+    sender_name = config('BREVO_SENDER_NAME', default='AI News Analyzer')
+    
+    html_content = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1>Password Reset Request</h1>
+            <p>Hello {username},</p>
+            <p>We received a request to reset your password for your AI News Analyzer account.</p>
+            <p>Click the button below to reset your password:</p>
+            <div style="margin: 30px 0;">
+                <a href="{reset_url}" 
+                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                          color: white;
+                          padding: 12px 30px;
+                          text-decoration: none;
+                          border-radius: 5px;
+                          display: inline-block;">
+                    Reset Password
+                </a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="color: #666;">{reset_url}</p>
+            <p><strong>This link will expire in 24 hours.</strong></p>
+            <p>If you didn't request this password reset, please ignore this email.</p>
+            <br>
+            <p>Best regards,<br>The AI News Analyzer Team</p>
+        </body>
+    </html>
+    """
+    
+    sender = {"name": sender_name, "email": sender_email}
+    to = [{"email": to_email, "name": username}]
+    
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        to=to,
+        sender=sender,
+        subject="Reset Your AI News Analyzer Password",
+        html_content=html_content
+    )
+    
+    try:
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        logger.info(f"Password reset email sent to {to_email}")
+        return True
+    except ApiException as e:
+        logger.error(f"Error sending password reset email: {e}")
+        return False

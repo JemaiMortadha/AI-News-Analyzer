@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaUser, FaSignOutAlt, FaMoon, FaSun } from 'react-icons/fa';
+import { useTheme } from '../context/ThemeContext';
+import { FaUser, FaSignOutAlt } from 'react-icons/fa';
 import Login from './Login';
 import Register from './Register';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [showLogin, setShowLogin] = useState(false);
     const [showRegister, setShowRegister] = useState(false);
-    const [theme, setTheme] = useState('light'); // To be moved to ThemeContext later
 
     const handleLogout = () => {
         logout();
         navigate('/');
-    };
-
-    const toggleTheme = () => {
-        setTheme(theme === 'light' ? 'dark' : 'light');
-        // Implement actual theme switching later
     };
 
     return (
@@ -35,8 +31,8 @@ const Navbar = () => {
                 </div>
 
                 <div className="navbar-end">
-                    <button className="btn-icon" onClick={toggleTheme}>
-                        {theme === 'light' ? <FaMoon /> : <FaSun />}
+                    <button onClick={toggleTheme} className="btn-theme" title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+                        {theme === 'light' ? '🌙' : '☀️'}
                     </button>
 
                     {user ? (
@@ -50,10 +46,9 @@ const Navbar = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="auth-buttons">
-                            <button onClick={() => setShowLogin(true)} className="btn-login">Login</button>
-                            <button onClick={() => setShowRegister(true)} className="btn-register">Register</button>
-                        </div>
+                        <button onClick={() => setShowLogin(true)} className="btn-icon-login" title="Login">
+                            <FaUser />
+                        </button>
                     )}
                 </div>
             </nav>
