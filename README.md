@@ -794,6 +794,78 @@ mongod --dbpath /path/to/data
 
 ---
 
+## 🛠️ Django Implementation Details
+
+This section explains the internal workings of the backend for validation purposes.
+
+### 1. Project Configuration (`backend/config/`)
+The project follows a standard Django structure but with specific configurations for modern deployment:
+- **`settings.py`**:
+  - Uses `python-decouple` to manage secrets (`.env` file).
+  - Configures **CORS** to allow frontend communication (specifically handling credentials).
+  - Sets up **DRF** (Django REST Framework) with JWT authentication.
+  - Configures **Djongo** as the database engine to connect Django ORM to MongoDB.
+
+### 2. Database Models (`backend/analyzer/models.py`)
+We use **Djongo** to treat MongoDB like a relational database while keeping its flexibility.
+
+*   **`NewsArticle`**: The core model.
+    *   Stores: `title`, `content`, `url`, `image_url`, `source`, `category`.
+    *   **AI Fields**: `sentiment` (Positive/Neutral/Negative) and `sentiment_confidence` (0.0-1.0), populated automatically by the deep learning model upon creation.
+*   **`User`**: Custom user model inheriting from `AbstractUser`.
+    *   Allows future extensibility (e.g., adding profile pictures or preferences).
+*   **`FetchLog`**: System observability.
+    *   Records every time the background fetcher runs.
+    *   Fields: `start_time`, `end_time`, `articles_count`, `status` (Success/Error).
+*   **Interaction Models**: `ArticleView`, `ArticleLike`, `ArticleSave`.
+    *   Used for analytics and user personalization.
+
+### 3. API Architecture (`backend/analyzer/news_views.py`)
+We use **ViewSets** from DRF to write clean, RESTful APIs.
+
+*   **`NewsArticleViewSet`**:
+    *   Inherits from `ModelViewSet` (provides standard GET/POST/PUT/DELETE).
+    *   **Custom Actions**: We added `@action` decorators for specific logic:
+        *   `like`: Toggles like status for a user.
+        *   `save`: Toggles save status.
+    *   **Filtering**: Overrides `get_queryset()` to filter by `category` or `search` query parameters dynamically.
+    *   **Pagination**: Uses `PageNumberPagination` to serve data in chunks (efficient for large datasets).
+
+### 4. Authentication System (`backend/analyzer/auth_views.py`)
+We implemented **JWT (JSON Web Token)** authentication for stateless security.
+
+*   **Registration**: `RegisterView` validates input and creates a new `User`.
+*   **Login**: `CustomTokenObtainPairView` (extends SimpleJWT).
+    *   Returns: `access` token (short-lived), `refresh` token (long-lived), and user profile data.
+*   **Security**: Passwords are hashed using PBKDF2 (Django default) before storage.
+
+### 5. News Aggregation Engine (`backend/analyzer/news_fetcher.py`)
+This is the "brain" that gathers data.
+
+*   **`NewsAggregator` Class**:
+    *   **Factory Pattern**: Manages multiple fetcher classes (`NewsAPI`, `GNews`, `NewsData`, `CurrentsAPI`).
+    *   **`fetch_all_news()`**: Iterates through all fetchers, collects articles, and performs **Deduplication** (checking if URL already exists).
+    *   **AI Integration**: Before saving, it calls `SentimentAnalyzer.predict(text)` to tag the article with sentiment.
+
+### 6. Background Scheduler (`backend/analyzer/scheduler.py`)
+We use **APScheduler** to run tasks without blocking the main server threads.
+
+*   **Setup**: Initialized in `apps.py` inside the `ready()` method (ensures it starts with Django).
+*   **Tasks**:
+    *   `fetch_news_task`: Runs every **6 hours**. Calls the aggregator to get fresh news.
+    *   `send_daily_digests_task`: Runs daily at **8:00 AM**. Checks user preferences and sends emails via Brevo.
+
+### 7. Admin Panel Customization (`backend/analyzer/admin.py`)
+We heavily customized the default Django Admin to act as a dashboard.
+
+*   **Custom Views**:
+    *   `fetch_history_view`: Renders a custom HTML template showing the `FetchLog` table.
+    *   `analytics_view`: Aggregates `ArticleView` data to show "Most Viewed Articles".
+*   **Sidebar**: Overridden `nav_sidebar.html` to inject links to these custom views.
+*   **Templates**: Created `admin/fetch_history.html` and `admin/analytics.html` extending the base admin site.
+
+---
+
 ## 🎓 For Your Presentation
 
 ### Key Points to Highlight:
