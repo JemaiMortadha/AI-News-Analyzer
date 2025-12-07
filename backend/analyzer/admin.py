@@ -129,6 +129,37 @@ def fetch_news_view(request):
     return redirect('/admin/news-articles/')
 
 
+def fetch_history_view(request):
+    """Display news fetch history"""
+    logs = FetchLog.get_all(limit=50)
+    
+    context = {
+        **admin.site.each_context(request),
+        'title': 'Fetch History',
+        'logs': logs,
+    }
+    return TemplateResponse(request, 'admin/fetch_history.html', context)
+
+
+def analytics_view(request):
+    """Display most viewed articles"""
+    # Get top 50 most viewed articles
+    articles = NewsArticle.get_all(
+        sort_by='view_count',
+        sort_order=-1,
+        limit=50
+    )
+    # Filter out articles with 0 views
+    articles = [a for a in articles if a.get('view_count', 0) > 0]
+    
+    context = {
+        **admin.site.each_context(request),
+        'title': 'Analytics',
+        'articles': articles,
+    }
+    return TemplateResponse(request, 'admin/analytics.html', context)
+
+
 # Add custom URLs to admin
 from django.contrib.admin import AdminSite
 
@@ -140,6 +171,8 @@ def custom_get_urls(self):
     custom_urls = [
         path('news-articles/', news_articles_view, name='news_articles'),
         path('news-articles/fetch/', fetch_news_view, name='fetch_news'),
+        path('fetch-history/', fetch_history_view, name='fetch_history'),
+        path('analytics/', analytics_view, name='analytics'),
     ]
     return custom_urls + urls
 

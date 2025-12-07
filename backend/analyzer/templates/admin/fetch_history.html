@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .status-badge {
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        color: white;
+        font-weight: bold;
+    }
+
+    .status-success {
+        background: #4caf50;
+    }
+
+    .status-error {
+        background: #f44336;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>News Fetch History</h1>
+
+<div class="module">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; text-align: left;">Date & Time (UTC)</th>
+                <th style="padding: 10px; text-align: left;">Status</th>
+                <th style="padding: 10px; text-align: left;">Articles Fetched</th>
+                <th style="padding: 10px; text-align: left;">Duration (s)</th>
+                <th style="padding: 10px; text-align: left;">Error Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">{{ log.fetch_date|date:"Y-m-d H:i:s" }}</td>
+                <td style="padding: 10px;">
+                    <span
+                        class="status-badge {% if log.status == 'success' %}status-success{% else %}status-error{% endif %}">
+                        {{ log.status|title }}
+                    </span>
+                </td>
+                <td style="padding: 10px;">{{ log.articles_count }}</td>
+                <td style="padding: 10px;">{{ log.duration|floatformat:2 }}s</td>
+                <td style="padding: 10px; color: #d32f2f;">{{ log.error_message|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="padding: 20px; text-align: center; color: #666;">
+                    No fetch history available.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

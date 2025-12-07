@@ -96,6 +96,13 @@ const ArticlesList = ({ filter = 'all' }) => {
     }
   };
 
+  const handleView = (articleId) => {
+    if (user) {
+      // Fire and forget view tracking
+      axios.get(`/news/${articleId}/`).catch(err => console.error("Error tracking view", err));
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric'
@@ -180,7 +187,12 @@ const ArticlesList = ({ filter = 'all' }) => {
                 </div>
 
                 <h3 className="article-title">
-                  <a href={article.url} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleView(article._id)}
+                  >
                     {article.title}
                   </a>
                 </h3>
@@ -207,7 +219,13 @@ const ArticlesList = ({ filter = 'all' }) => {
                     </button>
                   </div>
 
-                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="read-more">
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="read-more"
+                    onClick={() => handleView(article._id)}
+                  >
                     Read <FaExternalLinkAlt />
                   </a>
                 </div>

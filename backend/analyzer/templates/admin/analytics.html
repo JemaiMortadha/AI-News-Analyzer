@@ -1,0 +1,49 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<h1>Most Viewed Articles</h1>
+
+<div class="module">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; text-align: center; width: 60px;">Rank</th>
+                <th style="padding: 10px; text-align: left;">Article Title</th>
+                <th style="padding: 10px; text-align: left;">Category</th>
+                <th style="padding: 10px; text-align: left;">Views</th>
+                <th style="padding: 10px; text-align: left;">Published</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in articles %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; text-align: center; font-weight: bold; color: #666;">
+                    {{ forloop.counter }}
+                </td>
+                <td style="padding: 10px;">
+                    <a href="{{ article.url }}" target="_blank" style="color: #417690; text-decoration: none;">
+                        {{ article.title|truncatechars:100 }}
+                    </a>
+                </td>
+                <td style="padding: 10px;">
+                    <span style="background: #e3f2fd; padding: 3px 8px; border-radius: 3px; font-size: 12px;">
+                        {{ article.category|title }}
+                    </span>
+                </td>
+                <td style="padding: 10px; font-weight: bold;">{{ article.view_count }}</td>
+                <td style="padding: 10px; font-size: 12px; color: #666;">
+                    {{ article.published_at|date:"Y-m-d" }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="padding: 20px; text-align: center; color: #666;">
+                    No view data available yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
