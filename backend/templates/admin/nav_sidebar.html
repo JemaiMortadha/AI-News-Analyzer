@@ -1,0 +1,22 @@
+{% load i18n %}
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar"
+    aria-label="{% translate 'Toggle navigation' %}"></button>
+<nav class="sticky" id="nav-sidebar">
+    {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=False %}
+
+    {# Custom Link for News Articles #}
+    <div class="app-analyzer module">
+        <table style="width: 100%;">
+            <caption>
+                <a href="#" class="section" title="MongoDB Data" style="width: 100%; display: block;">MongoDB Data</a>
+            </caption>
+            <tr class="model-newsarticle">
+                <th scope="row">
+                    <a href="/admin/news-articles/" style="display: flex; align-items: center;">
+                        <span style="margin-right: 5px;">📰</span> News Articles
+                    </a>
+                </th>
+            </tr>
+        </table>
+    </div>
+</nav>
