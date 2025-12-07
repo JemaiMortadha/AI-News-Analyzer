@@ -43,20 +43,29 @@ class ImageSentimentAnalyzer:
     def predict(self, image_source):
         """
         Predict sentiment from image.
-        image_source: can be a URL string or a PIL Image object
+        image_source: can be a URL string, file path string, or a PIL Image object
         """
         if not self.model:
             return {'sentiment': 'neutral', 'confidence': 0.0}
 
         try:
             img = None
-            if isinstance(image_source, str):
-                # Download image
+            
+            # Check if it's a PIL Image
+            if hasattr(image_source, 'convert'):
+                img = image_source.convert('RGB')
+            # Check if it's a file path
+            elif isinstance(image_source, str) and (image_source.startswith('/') or image_source.startswith('.')):
+                from PIL import Image
+                img = Image.open(image_source).convert('RGB')
+            # Treat as URL
+            elif isinstance(image_source, str):
+                from PIL import Image
                 response = requests.get(image_source, timeout=10, stream=True)
                 response.raise_for_status()
                 img = Image.open(BytesIO(response.content)).convert('RGB')
             else:
-                img = image_source.convert('RGB')
+                return {'sentiment': 'neutral', 'confidence': 0.0}
 
             # Preprocess
             img_tensor = self.transform(img).unsqueeze(0).to(self.device)

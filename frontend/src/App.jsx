@@ -1,50 +1,63 @@
-import React, { useState, useEffect } from 'react'
-import AnalyzerForm from './components/AnalyzerForm'
-import ArticlesList from './components/ArticlesList'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import ArticlesList from './components/ArticlesList';
+import Profile from './components/Profile';
+import DemoPage from './components/DemoPage';
+import './App.css';
 
-function App() {
-  const [articles, setArticles] = useState([])
-  const [loading, setLoading] = useState(false)
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
-  const fetchArticles = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('http://localhost:8000/api/articles/')
-      const data = await response.json()
-      setArticles(data)
-    } catch (error) {
-      console.error('Error fetching articles:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  if (loading) return <div className="loading">Loading...</div>;
+  if (!user) return <Navigate to="/" />;
 
-  useEffect(() => {
-    fetchArticles()
-  }, [])
+  return children;
+};
 
-  const handleAnalysisComplete = () => {
-    fetchArticles()
-  }
+const AppContent = () => {
+  const location = useLocation();
+  const isDemoPage = location.pathname === '/demo';
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>🤖 AI News Analyzer</h1>
-        <p>Analyze sentiment of news articles using Machine Learning</p>
-      </header>
-
-      <main className="main">
-        <AnalyzerForm onAnalysisComplete={handleAnalysisComplete} />
-        <ArticlesList articles={articles} loading={loading} />
+    <div className="app-container">
+      {!isDemoPage && <Navbar />}
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<ArticlesList />} />
+          <Route path="/demo" element={<DemoPage />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saved"
+            element={
+              <ProtectedRoute>
+                <ArticlesList filter="saved" />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
       </main>
-
-      <footer className="footer">
-        <p></p>
-      </footer>
     </div>
-  )
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
+  );
 }
 
-export default App
+export default App;
