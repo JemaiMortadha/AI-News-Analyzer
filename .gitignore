@@ -69,3 +69,18 @@ mongo-data/
 *.pid
 *.seed
 *.pid.lock
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Kubernetes secrets
+k8s/*secret*.yaml
+*.kubeconfig
+
+# DockerHub credentials
+.docker/config.json
+

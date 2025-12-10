@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+server.log
+
+# Database
+*.db
+*.sqlite3
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Django
+*.pyc
+db.sqlite3
+staticfiles/
+
+# Debug scripts
+debug_*.py
+inspect_data.py
+fix_missing_sentiments.py
+update_sentiment.py
+
+# Documentation
+*.md
+*.txt
+!requirements.txt
+
+# Dataset (large files, download separately)
+analyzer/image_dataset/
+analyzer/dataset.csv

@@ -54,6 +54,9 @@ This project demonstrates end-to-end deep learning implementation for sentiment 
 ### DevOps
 - **Docker** - Containerization
 - **Docker Compose** - Multi-container orchestration
+- **Kubernetes** - Container orchestration at scale
+- **Terraform** - Infrastructure as Code
+- **DockerHub** - Container registry (mortadhajemai/ai-news-*)
 
 ---
 
