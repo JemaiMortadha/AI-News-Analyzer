@@ -1,5 +1,5 @@
 # Multi-stage build for optimized production image
-FROM python:3.11-slim as base
+FROM python:3.10-slim as base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -28,8 +28,9 @@ RUN pip install --no-cache-dir \
     djangorestframework-simplejwt==4.8.0 \
     django-cors-headers==4.3.1
 
-# Install MongoDB driver (skip djongo as it causes conflicts, use pymongo directly)
+# Install MongoDB drivers
 RUN pip install --no-cache-dir pymongo==3.11.4
+RUN pip install --no-cache-dir git+https://github.com/nesdis/djongo.git
 
 # Install ML/AI packages
 RUN pip install --no-cache-dir \

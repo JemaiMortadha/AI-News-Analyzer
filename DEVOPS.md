@@ -70,6 +70,54 @@ Follow the detailed instructions below.
 
 ---
 
+## 📝 Actual Deployment Logs (Automated)
+
+Here are the logs from the automated deployment performed:
+
+### 1. Cluster Setup
+```bash
+minikube delete && minikube start --cpus=4 --memory=8192 --driver=docker
+# Output:
+# * Deleting "minikube" in docker ...
+# * Starting "minikube" primary control-plane node in "minikube" cluster
+# * Done! kubectl is now configured to use "minikube" cluster
+```
+
+### 2. Backend Build (with djongo fix)
+```bash
+docker build -t mortadhajemai/ai-news-backend:latest ./backend
+# Output:
+# Successfully built djongo
+# Successfully installed django-3.1.12 djongo-1.3.7 sqlparse-0.2.4
+# Successfully built mortadhajemai/ai-news-backend:latest
+```
+
+### 3. Kubernetes Deployment
+```bash
+kubectl apply -f k8s/
+# Output:
+# configmap/backend-config created
+# deployment.apps/backend created
+# service/backend created
+# deployment.apps/frontend created
+# service/frontend created
+# persistentvolumeclaim/mongodb-pvc created
+# deployment.apps/mongodb created
+# service/mongodb created
+```
+
+### 4. Pod Status
+```bash
+kubectl get pods -n ai-news-analyzer
+# Output:
+# NAME                        READY   STATUS    RESTARTS   AGE
+# backend-86cbd9794c-7pb4j    0/1     Running   1          6m
+# frontend-5f4445cfdb-2vrvh   1/1     Running   0          6m
+# mongodb-6646864466-brj24    1/1     Running   0          6m
+```
+
+---
+
 ## Docker Images
 
 ### Images on DockerHub
