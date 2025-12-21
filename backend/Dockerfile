@@ -1,5 +1,5 @@
-# Multi-stage build for optimized production image
-FROM python:3.10-slim as base
+# Development Dockerfile for AI News Analyzer Backend
+FROM python:3.10-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,32 +21,8 @@ WORKDIR /app
 # Copy and install Python dependencies
 COPY requirements.txt .
 
-# Install core Django packages first
-RUN pip install --no-cache-dir \
-    Django==3.2.23 \
-    djangorestframework==3.12.4 \
-    djangorestframework-simplejwt==4.8.0 \
-    django-cors-headers==4.3.1
-
-# Install MongoDB drivers
-RUN pip install --no-cache-dir pymongo==3.11.4
-RUN pip install --no-cache-dir git+https://github.com/nesdis/djongo.git
-
-# Install ML/AI packages
-RUN pip install --no-cache-dir \
-    torch==2.5.1 \
-    torchvision==0.20.1 \
-    Pillow==10.1.0 \
-    numpy==1.26.2
-
-# Install other utilities
-RUN pip install --no-cache-dir \
-    sqlparse==0.2.4 \
-    requests==2.31.0 \
-    python-decouple==3.8 \
-    APScheduler==3.11.1 \
-    sib-api-v3-sdk==7.6.0 \
-    bing-image-downloader==1.1.2
+# Install all dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -57,9 +33,5 @@ RUN mkdir -p analyzer/
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/api/articles/', timeout=5)" || exit 1
-
-# Run with gunicorn for production
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Run Django development server
+CMD ["python3.10", "manage.py", "runserver", "0.0.0.0:8000"]
